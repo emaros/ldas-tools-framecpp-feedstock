@@ -1,0 +1,49 @@
+From: Ed Maros <ed.maros@ligo.org>
+Date: Mon, 22 Sep 2026 00:00:00 -0700
+Subject: [PATCH] framecpp/test/CMakeLists: guard test_verify_options add_test
+ blocks against missing target on cross-compile arches
+
+The framecpp_target_executable() helper at test/CMakeLists.txt:52
+early-returns on some cross-compile scenarios, so the test_verify_options
+target may not be created — but the add_test() calls that reference
+$<TARGET_FILE:test_verify_options> did not have a matching guard, so
+CMake configure failed with
+
+    CMake Error at test/CMakeLists.txt:650 (add_test):
+      Error evaluating generator expression:
+        $<TARGET_FILE:test_verify_options>
+      No target "test_verify_options"
+
+on conda-forge's linux_aarch64 and linux_ppc64le cross-compile-with-qemu
+builds (native builds and osx cross-compile arches are unaffected).
+
+Wrap both add_test() blocks with `AND TARGET test_verify_options`, matching
+the guard pattern already used elsewhere in this file (e.g. the
+`if(TARGET framecpp_checksum)` block added for #390/#400).
+
+Filed upstream as https://git.ligo.org/computing/ldastools/LDAS_Tools/-/issues/405.
+---
+ test/CMakeLists.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/test/CMakeLists.txt b/test/CMakeLists.txt
+--- a/test/CMakeLists.txt
++++ b/test/CMakeLists.txt
+@@ -646,7 +646,7 @@ endif()
+ ##-----------------------------------------------------------------------
+ # Phase 0: Baseline test with all Verify options disabled
+ # This establishes that minimal frames are valid and pass with no validation
+-if(BUILD_TESTING)
++if(BUILD_TESTING AND TARGET test_verify_options)
+   add_test(
+     NAME verify_phase0_baseline_all_disabled
+     COMMAND $<TARGET_FILE:test_verify_options>
+@@ -678,7 +678,7 @@ set(VERIFY_OPTIONS
+   CollectAllErrors
+ )
+
+-if(BUILD_TESTING)
++if(BUILD_TESTING AND TARGET test_verify_options)
+   foreach(option IN LISTS VERIFY_OPTIONS)
+     add_test(
+       NAME verify_phase1_${option}

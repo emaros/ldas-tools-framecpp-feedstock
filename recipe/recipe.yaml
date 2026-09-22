@@ -14,6 +14,12 @@ package:
 source:
   url: https://software.igwn.org/sources/source/${{ name }}-${{ version }}.tar.gz
   sha256: 2f9a4ae8d7efd80f8d70f034d72e7c73126070508918b83b651e89c5c3de7680
+  patches:
+    # Guard `add_test()` calls that reference $<TARGET_FILE:test_verify_options>
+    # against the target not existing on cross-compile arches (linux_aarch64,
+    # linux_ppc64le). See https://git.ligo.org/computing/ldastools/LDAS_Tools/-/issues/405
+    # for the upstream fix request.
+    - verify-options-cross-compile.patch
   # Two backport patches retired in 4.1.2 — both fixes landed upstream in 4.1.1:
   #   test-fixtures_required.patch    #363 FIXTURES_REQUIRED typo fix
   #   largeframetest-timeout.patch    #364 osx LargeFrameTest timeout raised to
